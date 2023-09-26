@@ -3,54 +3,74 @@
 /*                                                        :::      ::::::::   */
 /*   utils.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: vini <vini@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: vipalaci <vipalaci@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/09/18 13:20:44 by vini              #+#    #+#             */
-/*   Updated: 2023/09/18 13:20:46 by vini             ###   ########.fr       */
+/*   Created: 2023/09/26 15:43:20 by vipalaci          #+#    #+#             */
+/*   Updated: 2023/09/26 15:43:22 by vipalaci         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo.h"
+#include "../include/philosophers.h"
 
-int	is_dead(t_philo *philo, int nb)
+int	ft_atoi(const char *str)
 {
-	pthread_mutex_lock(&philo->info->dead);
-	if (nb)
-		philo->info->stop = 1;
-	if (philo->info->stop)
+	long	nbr;
+	int		i;
+	int		sign;
+
+	i = 0;
+	sign = 1;
+	nbr = 0;
+	while ((str[i] >= '\t' && str[i] <= '\r') || str[i] == ' ')
+		i++;
+	if (str[i] == '-')
+		sign *= -1;
+	if (str[i] == '+' || str[i] == '-')
+		i++;
+	while (str[i] >= '0' && str[i] <= '9')
 	{
-		pthread_mutex_unlock(&philo->info->dead);
-		return (1);
+		nbr = (nbr * 10) + str[i] - '0';
+		i++;
+		if (nbr * sign > INT_MAX)
+			return (-1);
+		if (nbr * sign < INT_MIN)
+			return (-1);
 	}
-	pthread_mutex_unlock(&philo->info->dead);
-	return (0);
+	return (nbr * sign);
 }
 
-long long	timestamp(void)
+void	ft_bzero(void *s, size_t n)
 {
-	struct timeval	tv;
+	unsigned char	*tmp;
+	size_t			i;
 
-	gettimeofday(&tv, NULL);
-	return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
+	tmp = (unsigned char *)s;
+	i = 0;
+	while (i < n)
+	{
+		tmp[i] = 0;
+		i++;
+	}
+	s = tmp;
 }
 
-void	ft_usleep(int ms)
+void	*ft_calloc(size_t num, size_t size)
 {
-	long int	time;
+	void	*ptr;
 
-	time = timestamp();
-	while (timestamp() - time < ms)
-		usleep(ms / 10);
+	ptr = malloc(num * size);
+	if (ptr == NULL)
+		return (NULL);
+	ft_bzero(ptr, (num * size));
+	return (ptr);
 }
 
-void	print(t_philo *philo, char *str)
+void	print(t_philo *p, char *state)
 {
-	long int	time;
-
-	pthread_mutex_lock(&(philo->info->print));
-	time = timestamp() - philo->info->t_start;
-	if (!philo->info->stop && time >= 0 \
-			&& time <= INT_MAX && !is_dead(philo, 0))
-		printf("%lld %d %s", timestamp() - philo->info->t_start, philo->n, str);
-	pthread_mutex_unlock(&(philo->info->print));
+	if (p->args->game_over == FALSE)
+	{
+		pthread_mutex_lock(&p->args->cout);
+		printf("%lld\t%d\t%s\n", timestamp(p->args), p->id, state);
+		pthread_mutex_unlock(&p->args->cout);
+	}
 }

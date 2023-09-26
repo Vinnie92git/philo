@@ -3,87 +3,82 @@
 /*                                                        :::      ::::::::   */
 /*   init.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: vini <vini@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: vipalaci <vipalaci@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/09/18 13:19:44 by vini              #+#    #+#             */
-/*   Updated: 2023/09/25 12:27:42 by vini             ###   ########.fr       */
+/*   Created: 2023/09/26 15:42:36 by vipalaci          #+#    #+#             */
+/*   Updated: 2023/09/26 15:42:38 by vipalaci         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo.h"
+#include "../include/philosophers.h"
 
-int	philo_init(t_info *data)
+int	check_argv(int argc, char **argv)
 {
 	int	i;
+	int	res;
 
-	data->t_start = timestamp();
-	i = -1;
-	while (++i < data->n_philo)
+	if (argc != 5 && argc != 6)
 	{
-		data->philo[i].n = i + 1;
-		data->philo[i].last_eat = 0;
-		data->philo[i].fork_r = NULL;
-		data->philo[i].info = data;
-		data->philo[i].m_count = 0;
-		pthread_mutex_init(&(data->philo[i].fork_l), NULL);
-		if (i == data->n_philo - 1)
-			data->philo[i].fork_r = &data->philo[0].fork_l;
-		else
-			data->philo[i].fork_r = &data->philo[i + 1].fork_l;
-		if (pthread_create(&data->philo[i].thread, NULL, \
-				&philo_life, &(data->philo[i])) != 0)
-			return (-1);
+		printf("%s", ERR_CMD);
+		return (-1);
 	}
-	i = -1;
-	while (++i < data->n_philo)
-		if (pthread_join(data->philo[i].thread, NULL) != 0)
+	i = 0;
+	while (argv[++i])
+	{
+		res = ft_atoi(argv[i]);
+		if (i == 1 && res >= 201)
+		{
+			printf(ERR_MAX);
 			return (-1);
+		}
+		if (res <= 0)
+		{
+			printf(ERR_ARGS);
+			return (-1);
+		}
+	}
 	return (0);
 }
 
-int	check_num(char **str)
+void	init_s_control(char **argv, t_control *input)
 {
 	int	i;
-	int	j;
 
-	i = 1;
-	while (str[i])
+	i = -1;
+	input->error = FALSE;
+	input->game_over = FALSE;
+	input->end_meal = 0;
+	input->nb_philo = ft_atoi(argv[1]);
+	input->t_to_die = ft_atoi(argv[2]);
+	input->t_to_eat = ft_atoi(argv[3]);
+	input->t_to_sleep = ft_atoi(argv[4]);
+	if (argv[5])
+		input->max_meals = ft_atoi(argv[5]);
+	else
+		input->max_meals = FALSE;
+	input->philo = ft_calloc(input->nb_philo, (sizeof(t_philo)));
+	input->fork = ft_calloc(input->nb_philo, (sizeof(pthread_mutex_t)));
+	pthread_mutex_init(&input->cout, NULL);
+	pthread_mutex_init(&input->checker, NULL);
+	while (++i < input->nb_philo)
+		pthread_mutex_init(&input->fork[i], NULL);
+	init_s_philo(input);
+	input->t0 = start_time();
+}
+
+void	init_s_philo(t_control *input)
+{
+	int	i;
+
+	i = 0;
+	while (i < input->nb_philo)
 	{
-		j = 0;
-		while (str[i][j])
-		{
-			if (!ft_isdigit(str[i][j]))
-				return (1);
-			j++;
-		}
+		input->philo[i].id = i + 1;
+		input->philo[i].meals_eaten = 0;
+		input->philo[i].t_lastmeal = 0;
+		input->philo[i].l_fork = i;
+		input->philo[i].r_fork = (i + 1) % input->nb_philo;
+		input->philo[i].args = input;
 		i++;
 	}
-	return (0);
-}
-
-int	var_init(t_info *data, char **av)
-{
-	pthread_mutex_init(&data->print, NULL);
-	pthread_mutex_init(&data->m_stop, NULL);
-	pthread_mutex_init(&data->m_eat, NULL);
-	pthread_mutex_init(&data->dead, NULL);
-	data->stop = 0;
-	data->n_philo = ft_atoi(av[1]);
-	data->philo = malloc(sizeof(t_philo) * data->n_philo);
-	if (data->philo == NULL)
-		return (2);
-	if (check_num(av))
-	{
-		printf("Invalid arguments\n");
-		return (1);
-	}
-	data->philo_eat = 0;
-	data->t_die = ft_atoi(av[2]);
-	data->t_eat = ft_atoi(av[3]);
-	data->t_sleep = ft_atoi(av[4]);
-	if (av[5])
-		data->n_eat = ft_atoi(av[5]);
-	if (av[5] && data->n_eat == 0)
-		return (1);
-	return (0);
 }
