@@ -5,80 +5,77 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: vipalaci <vipalaci@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/09/26 15:42:36 by vipalaci          #+#    #+#             */
-/*   Updated: 2023/09/26 15:42:38 by vipalaci         ###   ########.fr       */
+/*   Created: 2023/09/28 12:29:44 by vipalaci          #+#    #+#             */
+/*   Updated: 2023/09/28 12:29:48 by vipalaci         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../include/philosophers.h"
+#include "philo.h"
 
-int	check_argv(int argc, char **argv)
+static int	invalid_input_data(t_data *data)
 {
-	int	i;
-	int	res;
-
-	if (argc != 5 && argc != 6)
+	if (data->philo_count < 1 || data->philo_count > 200
+		|| (data->time_to_die < 1 || data->time_to_die > INT_MAX)
+		|| (data->time_to_eat < 1 || data->time_to_eat > INT_MAX)
+		|| (data->time_to_sleep < 1 || data->time_to_sleep > INT_MAX)
+		|| (data->meals_to_eat_per_philo < -1
+			|| data->meals_to_eat_per_philo == 0))
 	{
-		printf("%s", ERR_CMD);
-		return (-1);
-	}
-	i = 0;
-	while (argv[++i])
-	{
-		res = ft_atoi(argv[i]);
-		if (i == 1 && res >= 201)
-		{
-			printf(ERR_MAX);
-			return (-1);
-		}
-		if (res <= 0)
-		{
-			printf(ERR_ARGS);
-			return (-1);
-		}
+		printf("Received zero, negative or overflowing numbers.\n");
+		return (1);
 	}
 	return (0);
 }
 
-void	init_s_control(char **argv, t_control *input)
+static int	init_lock(t_data **data)
 {
-	int	i;
-
-	i = -1;
-	input->error = FALSE;
-	input->game_over = FALSE;
-	input->end_meal = 0;
-	input->nb_philo = ft_atoi(argv[1]);
-	input->t_to_die = ft_atoi(argv[2]);
-	input->t_to_eat = ft_atoi(argv[3]);
-	input->t_to_sleep = ft_atoi(argv[4]);
-	if (argv[5])
-		input->max_meals = ft_atoi(argv[5]);
-	else
-		input->max_meals = FALSE;
-	input->philo = ft_calloc(input->nb_philo, (sizeof(t_philo)));
-	input->fork = ft_calloc(input->nb_philo, (sizeof(pthread_mutex_t)));
-	pthread_mutex_init(&input->cout, NULL);
-	pthread_mutex_init(&input->checker, NULL);
-	while (++i < input->nb_philo)
-		pthread_mutex_init(&input->fork[i], NULL);
-	init_s_philo(input);
-	input->t0 = start_time();
+	if (pthread_mutex_init(&(*data)->lock, NULL) != 0)
+	{
+		printf("Error in initializing a mutex for the data.\n");
+		return (0);
+	}
+	return (1);
 }
 
-void	init_s_philo(t_control *input)
+static int	init_data(t_data **data, char **input, int argc)
 {
-	int	i;
-
-	i = 0;
-	while (i < input->nb_philo)
+	*data = (t_data *)ft_calloc(1, sizeof(**data));
+	if (!data || !(*data))
+		return (0);
+	(*data)->death = 0;
+	(*data)->start_time = 0;
+	(*data)->philo_count = ft_atoi(input[1]);
+	(*data)->time_to_die = ft_atoi(input[2]);
+	(*data)->time_to_eat = ft_atoi(input[3]);
+	(*data)->time_to_sleep = ft_atoi(input[4]);
+	(*data)->threads = (pthread_t *)ft_calloc((*data)->philo_count,
+			sizeof(pthread_t));
+	if (argc == 6)
 	{
-		input->philo[i].id = i + 1;
-		input->philo[i].meals_eaten = 0;
-		input->philo[i].t_lastmeal = 0;
-		input->philo[i].l_fork = i;
-		input->philo[i].r_fork = (i + 1) % input->nb_philo;
-		input->philo[i].args = input;
-		i++;
+		(*data)->meals_to_eat_per_philo = ft_atoi(input[5]);
+		if ((*data)->meals_to_eat_per_philo == -1)
+			(*data)->meals_to_eat_per_philo = -2;
 	}
+	else
+		(*data)->meals_to_eat_per_philo = -1;
+	return (init_lock(data));
+}
+
+int	init(t_data **data, char **input, int argc)
+{
+	if (!init_data(data, input, argc))
+		return (0);
+	if (invalid_input_data(*data))
+		return (0);
+	if (!init_forks(data))
+		return (0);
+	if (!init_philos(data))
+		return (0);
+	if (pthread_mutex_init(&(*data)->print_lock, NULL) != 0
+		|| pthread_mutex_init(&(*data)->eat_lock, NULL) != 0)
+	{
+		printf("Issue with initializing the mutex.\n");
+		return (0);
+	}
+	return (1);
 }

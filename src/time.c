@@ -1,30 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   time.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: vipalaci <vipalaci@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/09/28 12:30:00 by vipalaci          #+#    #+#             */
-/*   Updated: 2023/09/28 12:30:04 by vipalaci         ###   ########.fr       */
+/*   Created: 2023/09/28 12:31:14 by vipalaci          #+#    #+#             */
+/*   Updated: 2023/09/28 12:31:20 by vipalaci         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
-#include <stdio.h>
 
-int	main(int argc, char **argv)
+unsigned long long	time_mls(void)
 {
-	t_data	*data;
+	struct timeval			tv;
 
-	data = NULL;
-	if (invalid_input(argc, argv))
-		return (1);
-	else if (!init(&data, argv, argc))
-	{
-		clean(&data);
-		return (1);
-	}
-	dine(&data);
-	return (0);
+	if (gettimeofday(&tv, NULL) == 0)
+		return (((tv.tv_sec) * (unsigned int)1000) + ((tv.tv_usec) / 1000));
+	else
+		return (0);
 }
